@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HabitX - Build Better Habits</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div id="authScreen" class="screen active">
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="logo-section">
+            <div class="logo-container">
+              <svg
+                class="animated-logo"
+                viewBox="0 0 200 200"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient
+                    id="ringGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop
+                      offset="0%"
+                      style="stop-color: #6c63ff; stop-opacity: 1"
+                    />
+                    <stop
+                      offset="100%"
+                      style="stop-color: #00c9a7; stop-opacity: 1"
+                    />
+                  </linearGradient>
+                  <filter id="softGlow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="75"
+                  stroke="url(#ringGradient)"
+                  stroke-width="12"
+                  fill="none"
+                  stroke-linecap="round"
+                  filter="url(#softGlow)"
+                />
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="55"
+                  fill="rgba(255,255,255,0.08)"
+                />
+                <path
+                  d="M 75 105 L 95 125 L 130 85"
+                  stroke="#00C9A7"
+                  stroke-width="10"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  filter="url(#softGlow)"
+                />
+              </svg>
+            </div>
+            <h1 class="brand-title">HabitX</h1>
+            <p class="brand-tagline">
+              Build Better Habits. Track Your Progress.
+            </p>
+          </div>
+          <form id="loginForm" class="auth-form active">
+            <h2>Welcome Back</h2>
+            <div class="input-group">
+              <i class="fas fa-envelope"></i>
+              <input
+                type="email"
+                id="loginEmail"
+                placeholder="Email"
+                required
+              />
+            </div>
+            <div class="input-group">
+              <i class="fas fa-lock"></i>
+              <input
+                type="password"
+                id="loginPassword"
+                placeholder="Password"
+                required
+              />
+            </div>
+            <button type="submit" class="btn-primary">
+              <span>Login</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <p class="switch-auth">
+              Don't have an account?
+              <a href="#" id="showSignup">Sign Up</a>
+            </p>
+          </form>
+          <form id="signupForm" class="auth-form">
+            <h2>Create Account</h2>
+            <div class="input-group">
+              <i class="fas fa-user"></i>
+              <input
+                type="text"
+                id="signupName"
+                placeholder="Full Name"
+                required
+              />
+            </div>
+            <div class="input-group">
+              <i class="fas fa-envelope"></i>
+              <input
+                type="email"
+                id="signupEmail"
+                placeholder="Email"
+                required
+              />
+            </div>
+            <div class="input-group">
+              <i class="fas fa-lock"></i>
+              <input
+                type="password"
+                id="signupPassword"
+                placeholder="Password"
+                required
+              />
+            </div>
+            <button type="submit" class="btn-primary">
+              <span>Sign Up</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <p class="switch-auth">
+              Already have an account?
+              <a href="#" id="showLogin">Login</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div id="dashboardScreen" class="screen">
+      <nav class="navbar">
+        <div class="nav-brand">
+          <svg
+            class="nav-logo-svg"
+            viewBox="0 0 200 200"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <linearGradient
+                id="navRingGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop
+                  offset="0%"
+                  style="stop-color: #6c63ff; stop-opacity: 1"
+                />
+                <stop
+                  offset="100%"
+                  style="stop-color: #00c9a7; stop-opacity: 1"
+                />
+              </linearGradient>
+            </defs>
+            <circle
+              cx="100"
+              cy="100"
+              r="75"
+              stroke="url(#navRingGrad)"
+              stroke-width="12"
+              fill="none"
+              stroke-linecap="round"
+            />
+            <circle cx="100" cy="100" r="55" fill="rgba(255,255,255,0.08)" />
+            <path
+              d="M 75 105 L 95 125 L 130 85"
+              stroke="#00C9A7"
+              stroke-width="10"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span>HabitX</span>
+        </div>
+        <div class="nav-user-info">
+          Welcome Back,
+          <span id="currentUserName">Guest</span>
+          &nbsp; |
+          <span id="todayDate" style="margin-left: 10px; opacity: 0.7"></span>
+        </div>
+        <div class="nav-actions">
+          <button id="darkModeToggle" class="btn-icon" title="Toggle Dark Mode">
+            <i class="fas fa-moon"></i>
+          </button>
+          <button id="notificationsBtn" class="btn-icon" title="Notifications">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge" id="notificationBadge">0</span>
+          </button>
+          <button id="enableReminderBtn" class="btn-edit">🔕</button>
+          <button id="logoutBtn" class="btn-icon" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </nav>
+      <div class="dashboard-container">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon fire">
+              <i class="fas fa-fire"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="currentStreak">0</h3>
+              <p>Day Streak</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon trophy">
+              <i class="fas fa-trophy"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="bestStreak">0</h3>
+              <p>Best Streak</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon check">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="completionRate">0%</h3>
+              <p>Completion</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon target">
+              <i class="fas fa-bullseye"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="totalHabits">0</h3>
+              <p>Total Habits</p>
+            </div>
+          </div>
+        </div>
+        <div class="motivation-card">
+          <i class="fas fa-quote-left"></i>
+          <p id="motivationText">Loading motivation...</p>
+          <i class="fas fa-quote-right"></i>
+        </div>
+        <div class="progress-section">
+          <h2>Today's Progress</h2>
+          <div class="circular-progress">
+            <svg class="progress-ring" width="200" height="200">
+              <circle
+                class="progress-ring-circle-bg"
+                cx="100"
+                cy="100"
+                r="85"
+              ></circle>
+              <circle
+                class="progress-ring-circle"
+                cx="100"
+                cy="100"
+                r="85"
+              ></circle>
+            </svg>
+            <div class="progress-text">
+              <span id="progressPercent">0%</span>
+              <small>Complete</small>
+            </div>
+          </div>
+        </div>
+        <div class="filter-section">
+          <h2>Filter by Category</h2>
+          <div class="category-filters">
+            <button class="filter-btn active" data-category="all">
+              <i class="fas fa-th"></i>
+              All
+            </button>
+            <button class="filter-btn" data-category="health">🏃 Health</button>
+            <button class="filter-btn" data-category="study">📚 Study</button>
+            <button class="filter-btn" data-category="productivity">
+              💼 Productivity
+            </button>
+            <button class="filter-btn" data-category="mindfulness">
+              🧘 Mindfulness
+            </button>
+          </div>
+        </div>
+        <div class="habits-section">
+          <div class="section-header">
+            <h2>Today's Habits</h2>
+            <button id="addHabitBtn" class="btn-add">
+              <i class="fas fa-plus"></i>
+              Add Habit
+            </button>
+          </div>
+          <div
+            id="emptyHabitState"
+            style="
+              display: none;
+              text-align: center;
+              padding: 40px;
+              opacity: 0.7;
+            "
+          >
+            <i
+              class="fas fa-seedling"
+              style="font-size: 48px; margin-bottom: 15px"
+            ></i>
+            <h3>No habits yet</h3>
+            <p>Create your first habit to start tracking progress</p>
+          </div>
+          <div id="habitsList" class="habits-list"></div>
+        </div>
+        <div class="chart-section">
+          <h2>Weekly Progress</h2>
+          <div class="chart-container">
+            <canvas id="progressChart"></canvas>
+          </div>
+          <div id="insightsBox" class="insights-box"></div>
+        </div>
+        <div class="calendar-section">
+          <h2>Monthly Heatmap</h2>
+          <div id="streakCalendar" class="streak-calendar"></div>
+        </div>
+        <div class="achievements-section">
+          <h2>🏆 Achievements</h2>
+          <div id="achievementsList" class="achievements-grid"></div>
+        </div>
+        <div class="leaderboard-section">
+          <h2>🎯 Personal Records</h2>
+          <div id="leaderboardList" class="leaderboard-list"></div>
+        </div>
+        <div class="notes-section">
+          <h2>📝 Today's Reflection</h2>
+          <textarea
+            id="dailyNote"
+            placeholder="How did your habits go today? Write your thoughts..."
+          ></textarea>
+          <button id="saveNoteBtn" class="btn-primary">
+            <i class="fas fa-save"></i>
+            Save Note
+          </button>
+        </div>
+        <div class="stats-overview-section">
+          <h2>📊 Detailed Statistics</h2>
+          <div class="stats-details">
+            <div class="stat-detail-card">
+              <i class="fas fa-calendar-check"></i>
+              <div>
+                <h3 id="daysActive">0</h3>
+                <p>Days Active</p>
+              </div>
+            </div>
+            <div class="stat-detail-card">
+              <i class="fas fa-check-double"></i>
+              <div>
+                <h3 id="totalCompletions">0</h3>
+                <p>Total Completions</p>
+              </div>
+            </div>
+            <div class="stat-detail-card">
+              <i class="fas fa-percentage"></i>
+              <div>
+                <h3 id="successRateDetailed">0%</h3>
+                <p>Success Rate</p>
+              </div>
+            </div>
+            <div class="stat-detail-card">
+              <i class="fas fa-medal"></i>
+              <div>
+                <h3 id="achievementsCount">0</h3>
+                <p>Achievements</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="templates-section">
+          <h2>✨ Quick Start Templates</h2>
+          <div class="templates-grid">
+            <div class="template-card" data-template="morning">
+              <i class="fas fa-sun"></i>
+              <h3>Morning Routine</h3>
+              <p>Wake up early, exercise, meditate</p>
+              <button class="btn-template">Use Template</button>
+            </div>
+            <div class="template-card" data-template="fitness">
+              <i class="fas fa-dumbbell"></i>
+              <h3>Fitness Goals</h3>
+              <p>Workout, healthy eating, water intake</p>
+              <button class="btn-template">Use Template</button>
+            </div>
+            <div class="template-card" data-template="productivity">
+              <i class="fas fa-laptop-code"></i>
+              <h3>Productivity Boost</h3>
+              <p>Deep work, learning, reading</p>
+              <button class="btn-template">Use Template</button>
+            </div>
+            <div class="template-card" data-template="wellness">
+              <i class="fas fa-heart"></i>
+              <h3>Mental Wellness</h3>
+              <p>Meditation, journaling, gratitude</p>
+              <button class="btn-template">Use Template</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="addHabitModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create New Habit</h2>
+          <button class="close-modal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="addHabitForm">
+          <div class="form-group">
+            <label>Habit Name</label>
+            <input
+              type="text"
+              id="habitName"
+              placeholder="e.g., Morning Exercise"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="habitCategory" required>
+              <option value="">Select Category</option>
+              <option value="health">🏃 Health & Fitness</option>
+              <option value="study">📚 Study & Learning</option>
+              <option value="productivity">💼 Productivity</option>
+              <option value="mindfulness">🧘 Mindfulness</option>
+              <option value="custom">✨ Custom</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Target Frequency</label>
+            <select id="habitFrequency" required>
+              <option value="daily">Daily</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Reminder Time (Optional)</label>
+            <input type="time" id="habitReminder" />
+          </div>
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="habitStartDate" required />
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-plus"></i>
+            Create Habit
+          </button>
+        </form>
+      </div>
+    </div>
+    <div id="toast" class="toast">
+      <i class="fas fa-check-circle"></i>
+      <span id="toastMessage"></span>
+    </div>
+    <div id="notificationsPanel" class="notifications-panel">
+      <div class="notifications-header">
+        <h3>Notifications</h3>
+        <button id="clearNotificationsBtn" class="btn-clear">Clear All</button>
+        <button class="close-notifications">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="notificationsList" class="notifications-list"></div>
+    </div>
+    <div id="achievementPopup" class="achievement-popup">
+      <div class="achievement-content">
+        <div class="achievement-icon">🏆</div>
+        <h2>Achievement Unlocked!</h2>
+        <p id="achievementText"></p>
+        <button class="btn-primary" onclick="app.closeAchievementPopup()">
+          Awesome!
+        </button>
+      </div>
+    </div>
+    <div id="confirmModal" class="confirm-modal">
+      <div class="confirm-box">
+        <h3 id="confirmTitle">Confirm</h3>
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="confirm-actions">
+          <button id="confirmCancel" class="btn-cancel">Cancel</button>
+          <button id="confirmOk" class="btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const dateEl = document.getElementById("todayDate");
+        if (dateEl) {
+          dateEl.textContent = new Date().toLocaleDateString(undefined, {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          });
+        }
+      });
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>
