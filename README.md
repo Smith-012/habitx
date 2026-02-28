@@ -1,4 +1,4 @@
-# HabitX -- Smart Habit Tracker
+# HabitX - Smart Habit Tracker
 
 HabitX is a full-stack web application designed to help users build
 consistency, track habits, visualize progress, and stay motivated
