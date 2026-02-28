@@ -211,4 +211,8 @@ UI, structured backend logic, and data-driven motivation.
 
 ## Contact
 
-Created by Sp with heart and dedication.
+<p align="center">
+    Developed by Sp with ❤️ and dedication.
+</p>
+
+------------------------------------------------------------------------
