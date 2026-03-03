@@ -166,18 +166,6 @@ Backend: - Python (Flask) - SQLite Database - Modular architecture
 
 ------------------------------------------------------------------------
 
-# Project Structure
-
--   app.py
--   templates/
--   static/
--   database/
--   modules for streaks, achievements, progress
--   authentication system
--   theme management system
-
-------------------------------------------------------------------------
-
 # Why This Project Stands Out
 
 -   Custom Canvas chart (no external chart libraries)
