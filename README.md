@@ -86,10 +86,7 @@ HabitX/
 
 ------------------------------------------------------------------------
 
-# Screenshots
-
-> Note: For best practice, store screenshots inside: `docs/images/`\
-> and update the paths accordingly.
+# Screenshots of System UI
 
 ## Authentication
 
