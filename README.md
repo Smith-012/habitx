@@ -92,11 +92,11 @@ HabitX/
 
 ### Register Page
 
-![Register](docs/images/register.png)
+![Login](docs/images/login.png)
 
 ### Login Page
 
-![Login](docs/images/login.png)
+![Register](docs/images/register.png)
 
 ------------------------------------------------------------------------
 
