@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Check for updates to Python dependencies in the backend folder
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly" # You can also set this to "daily" or "monthly"
+    open-pull-requests-limit: 10

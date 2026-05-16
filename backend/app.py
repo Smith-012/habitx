@@ -45,11 +45,33 @@ def index():
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
+    password = data.get("password") or ""
+
     if not name or not email or not password:
         return jsonify({"success": False, "message": "All fields required"})
+
+    import re
+    if not re.match(r'^[a-zA-Z\s]+$', name):
+        return jsonify({"success": False, "message": "Name can only contain letters and spaces"})
+    if len(name) > 20:
+        return jsonify({"success": False, "message": "Name must be 20 characters or less"})
+    if not email.endswith('@gmail.com'):
+        return jsonify({"success": False, "message": "Email must end with @gmail.com"})
+    if len(email) > 25:
+        return jsonify({"success": False, "message": "Email must be 25 characters or less"})
+    if len(password) < 8 or len(password) > 20:
+        return jsonify({"success": False, "message": "Password must be 8-20 characters"})
+    if not re.search(r'[A-Z]', password):
+        return jsonify({"success": False, "message": "Password needs an uppercase letter"})
+    if not re.search(r'[a-z]', password):
+        return jsonify({"success": False, "message": "Password needs a lowercase letter"})
+    if not re.search(r'\d', password):
+        return jsonify({"success": False, "message": "Password needs a number"})
+    if not re.search(r'[@$!%*?&]', password):
+        return jsonify({"success": False, "message": "Password needs a special character (@$!%*?&)"})
+
     existing = get_user_by_email(email)
     if existing:
         return jsonify({"success": False, "message": "Email already registered"})

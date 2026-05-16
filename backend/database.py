@@ -20,8 +20,8 @@ def init_db():
         """
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL CHECK(length(name) <= 20),
+        email TEXT UNIQUE NOT NULL CHECK(length(email) <= 25),
         password_hash TEXT NOT NULL,
         join_date TEXT,
         timezone TEXT
@@ -152,12 +152,14 @@ def get_user_by_email(email):
     return user
 
 
+from werkzeug.security import generate_password_hash, check_password_hash
+
 def hash_password(password: str):
-    return hashlib.sha256(password.encode()).hexdigest()
+    return generate_password_hash(password)
 
 
 def verify_password(password: str, stored_hash: str):
-    return hash_password(password) == stored_hash
+    return check_password_hash(stored_hash, password)
 
 
 from datetime import datetime
@@ -194,16 +196,6 @@ def create_habit(user_id, name, category, frequency, reminder, startDate):
     """,
         (user_id, name, category, frequency, reminder, startDate),
     )
-    cur.execute("PRAGMA table_info(habits)")
-    existing = [c[1] for c in cur.fetchall()]
-
-    def add(col, sql):
-        if col not in existing:
-            print(f"[DB] Adding column: {col}")
-            cur.execute(sql)
-
-    add("consistency", "ALTER TABLE habits ADD COLUMN consistency REAL DEFAULT 0")
-    add("active_days", "ALTER TABLE habits ADD COLUMN active_days INTEGER DEFAULT 0")
     conn.commit()
     conn.close()
 

@@ -139,20 +139,63 @@ class HabitApp {
     this.currentFilter = 'all'
     this.editingHabitId = null
     this.reminderTimers = []
+    this.isGuest = false
     if (localStorage.getItem('remindersEnabled') === null) {
       localStorage.setItem('remindersEnabled', 'false')
     }
     this.init()
   }
+  loadDemoData () {
+    this.isGuest = true
+    this.habits = [
+      {
+        id: 'demo1',
+        habit_name: 'Morning Meditation',
+        category: 'mindfulness',
+        frequency: 'daily',
+        current_streak: 5,
+        best_streak: 12,
+        consistency: 85,
+        created_date: new Date().toISOString().split('T')[0],
+        today_status: 'pending'
+      },
+      {
+        id: 'demo2',
+        habit_name: 'Read 20 Pages',
+        category: 'study',
+        frequency: 'daily',
+        current_streak: 3,
+        best_streak: 8,
+        consistency: 70,
+        created_date: new Date().toISOString().split('T')[0],
+        today_status: 'done'
+      },
+      {
+        id: 'demo3',
+        habit_name: 'Workout 30 Mins',
+        category: 'health',
+        frequency: 'daily',
+        current_streak: 0,
+        best_streak: 15,
+        consistency: 60,
+        created_date: new Date().toISOString().split('T')[0],
+        today_status: 'missed'
+      }
+    ]
+    const banner = document.getElementById('guestBanner')
+    if (banner) banner.style.display = 'block'
+  }
   async init () {
     this.setupEventListeners()
     const savedUser = JSON.parse(localStorage.getItem('currentUser'))
     if (savedUser) {
+      this.isGuest = false
       updateNavbarUser(savedUser.name)
       await this.loadHabitsFromServer(savedUser.id)
       this.showDashboard()
     } else {
-      this.showAuth()
+      this.loadDemoData()
+      this.showDashboard()
     }
   }
   async loadHabitsFromServer () {
@@ -171,6 +214,14 @@ class HabitApp {
   async loadInsights () {
     const box = document.getElementById('insightsBox')
     if (!box) return
+    if (this.isGuest) {
+      box.innerHTML = `
+      💪 You perform best on <b>Mondays</b><br>
+      😴 You struggle most on <b>Sundays</b><br>
+      🏆 Top habit: <b>Morning Meditation</b> (12 day streak)
+    `
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
     try {
@@ -198,6 +249,14 @@ class HabitApp {
     }
   }
   async fetchAchievementsFromServer () {
+    if (this.isGuest) {
+      this.userAchievements = [
+        { id: 'first_habit' },
+        { id: 'streak_3' },
+        { id: 'early_bird' }
+      ]
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
     try {
@@ -212,6 +271,16 @@ class HabitApp {
     }
   }
   async loadPersonalRecords () {
+    if (this.isGuest) {
+      this.renderPersonalRecords({
+        longest_streak: 15,
+        best_day_count: 3,
+        best_habit: 'Workout 30 Mins',
+        best_week_percent: 85,
+        consistent_habit: 'Morning Meditation'
+      })
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
     try {
@@ -244,10 +313,14 @@ class HabitApp {
   showConfirm (message) {
     return new Promise(resolve => {
       const modal = document.getElementById('confirmModal')
+      const title = document.getElementById('confirmTitle')
       const msg = document.getElementById('confirmMessage')
       const ok = document.getElementById('confirmOk')
       const cancel = document.getElementById('confirmCancel')
+      title.textContent = 'Confirm'
       msg.textContent = message
+      ok.textContent = 'Confirm'
+      cancel.style.display = 'block'
       modal.classList.add('active')
       const clean = () => {
         modal.classList.remove('active')
@@ -263,6 +336,28 @@ class HabitApp {
         resolve(false)
       }
     })
+  }
+  showAlert (message, titleText = 'Action Required') {
+    return new Promise(resolve => {
+      const modal = document.getElementById('confirmModal')
+      const title = document.getElementById('confirmTitle')
+      const msg = document.getElementById('confirmMessage')
+      const ok = document.getElementById('confirmOk')
+      const cancel = document.getElementById('confirmCancel')
+      title.textContent = titleText
+      msg.textContent = message
+      ok.textContent = 'Got it!'
+      cancel.style.display = 'none'
+      modal.classList.add('active')
+      ok.onclick = () => {
+        modal.classList.remove('active')
+        ok.onclick = null
+        resolve()
+      }
+    })
+  }
+  async showGuestPopup (message = 'Please login to perform activities') {
+    await this.showAlert(message, '🔒 Guest Mode')
   }
   async loadDashboardSummary () {
     const user = JSON.parse(localStorage.getItem('currentUser'))
@@ -328,7 +423,11 @@ class HabitApp {
     document.getElementById('logoutBtn')?.addEventListener('click', () => {
       this.handleLogout()
     })
-    document.getElementById('addHabitBtn')?.addEventListener('click', () => {
+    document.getElementById('addHabitBtn')?.addEventListener('click', async () => {
+      if (this.isGuest) {
+        await this.showGuestPopup()
+        return
+      }
       this.showAddHabitModal()
     })
     document.querySelector('.close-modal')?.addEventListener('click', () => {
@@ -361,6 +460,10 @@ class HabitApp {
     document
       .getElementById('clearNotificationsBtn')
       ?.addEventListener('click', async () => {
+        if (this.isGuest) {
+          await this.showGuestPopup()
+          return
+        }
         const user = JSON.parse(localStorage.getItem('currentUser'))
         if (!user) return
         try {
@@ -391,6 +494,10 @@ class HabitApp {
     document
       .getElementById('enableReminderBtn')
       ?.addEventListener('click', async () => {
+        if (this.isGuest) {
+          await this.showGuestPopup('Login to enable reminders!')
+          return
+        }
         if (!('Notification' in window)) {
           this.showToast('Notifications not supported', 'error')
           return
@@ -415,6 +522,167 @@ class HabitApp {
         }
         this.updateReminderIcon()
       })
+
+    // ── Real-time input validation ──
+    const nameInput = document.getElementById('signupName')
+    if (nameInput) {
+      nameInput.addEventListener('input', () => {
+        const val = nameInput.value
+        const filtered = val.replace(/[^a-zA-Z\s]/g, '')
+        if (val !== filtered) nameInput.value = filtered
+        const err = document.getElementById('signupNameError')
+        if (err) {
+          err.textContent = filtered.length === 0 ? 'Name is required' : ''
+        }
+        nameInput.classList.toggle('input-invalid', filtered.length === 0 && val.length > 0)
+        nameInput.classList.toggle('input-valid', filtered.length > 0)
+      })
+    }
+
+    const signupEmail = document.getElementById('signupEmail')
+    if (signupEmail) {
+      signupEmail.addEventListener('input', () => {
+        const val = signupEmail.value.trim()
+        const err = document.getElementById('signupEmailError')
+        if (!val) {
+          err.textContent = ''
+          signupEmail.classList.remove('input-valid', 'input-invalid')
+        } else if (!val.endsWith('@gmail.com')) {
+          err.textContent = 'Must end with @gmail.com'
+          signupEmail.classList.add('input-invalid')
+          signupEmail.classList.remove('input-valid')
+        } else {
+          err.textContent = ''
+          signupEmail.classList.remove('input-invalid')
+          signupEmail.classList.add('input-valid')
+        }
+      })
+    }
+
+    const signupPass = document.getElementById('signupPassword')
+    const panel = document.getElementById('passwordStrengthPanel')
+    if (signupPass && panel) {
+      signupPass.addEventListener('focus', () => {
+        panel.classList.add('visible')
+      })
+      signupPass.addEventListener('blur', () => {
+        if (!signupPass.value) panel.classList.remove('visible')
+      })
+      signupPass.addEventListener('input', () => {
+        const val = signupPass.value
+        panel.classList.add('visible')
+
+        const rules = {
+          'chk-length': val.length >= 8 && val.length <= 20,
+          'chk-upper': /[A-Z]/.test(val),
+          'chk-lower': /[a-z]/.test(val),
+          'chk-number': /\d/.test(val),
+          'chk-special': /[@$!%*?&]/.test(val)
+        }
+
+        let passed = 0
+        for (const [id, ok] of Object.entries(rules)) {
+          const el = document.getElementById(id)
+          if (!el) continue
+          const icon = el.querySelector('i')
+          if (ok) {
+            el.classList.add('passed')
+            icon.className = 'fas fa-check-square'
+            passed++
+          } else {
+            el.classList.remove('passed')
+            icon.className = 'far fa-square'
+          }
+        }
+
+        const label = document.getElementById('strengthLabel')
+        const bar = document.getElementById('strengthBarFill')
+        bar.classList.remove('weak', 'medium', 'strong')
+        label.classList.remove('weak', 'medium', 'strong')
+
+        if (!val) {
+          label.textContent = '\u2014'
+          bar.className = 'strength-bar-fill'
+          signupPass.classList.remove('input-valid', 'input-invalid')
+        } else if (passed <= 2) {
+          label.textContent = 'Weak'
+          label.classList.add('weak')
+          bar.classList.add('weak')
+          signupPass.classList.add('input-invalid')
+          signupPass.classList.remove('input-valid')
+        } else if (passed <= 4) {
+          label.textContent = 'Medium'
+          label.classList.add('medium')
+          bar.classList.add('medium')
+          signupPass.classList.add('input-invalid')
+          signupPass.classList.remove('input-valid')
+        } else {
+          label.textContent = 'Strong'
+          label.classList.add('strong')
+          bar.classList.add('strong')
+          signupPass.classList.remove('input-invalid')
+          signupPass.classList.add('input-valid')
+        }
+      })
+    }
+
+    const loginEmail = document.getElementById('loginEmail')
+    if (loginEmail) {
+      loginEmail.addEventListener('input', () => {
+        const val = loginEmail.value.trim()
+        const err = document.getElementById('loginEmailError')
+        if (!val) {
+          err.textContent = ''
+          loginEmail.classList.remove('input-valid', 'input-invalid')
+        } else if (!val.endsWith('@gmail.com')) {
+          err.textContent = 'Must end with @gmail.com'
+          loginEmail.classList.add('input-invalid')
+          loginEmail.classList.remove('input-valid')
+        } else {
+          err.textContent = ''
+          loginEmail.classList.remove('input-invalid')
+          loginEmail.classList.add('input-valid')
+        }
+      })
+    }
+
+    const loginPass = document.getElementById('loginPassword')
+    if (loginPass) {
+      loginPass.addEventListener('input', () => {
+        const val = loginPass.value
+        const err = document.getElementById('loginPasswordError')
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/
+        if (!val) {
+          err.textContent = ''
+          loginPass.classList.remove('input-valid', 'input-invalid')
+        } else if (!regex.test(val)) {
+          err.textContent = 'Invalid password format'
+          loginPass.classList.add('input-invalid')
+          loginPass.classList.remove('input-valid')
+        } else {
+          err.textContent = ''
+          loginPass.classList.remove('input-invalid')
+          loginPass.classList.add('input-valid')
+        }
+      })
+    }
+
+    // ── Password show/hide toggle ──
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target')
+        const input = document.getElementById(targetId)
+        if (!input) return
+        const icon = btn.querySelector('i')
+        if (input.type === 'password') {
+          input.type = 'text'
+          icon.className = 'fas fa-eye-slash'
+        } else {
+          input.type = 'password'
+          icon.className = 'fas fa-eye'
+        }
+      })
+    })
   }
   toggleAuthForm (form) {
     const loginForm = document.getElementById('loginForm')
@@ -428,8 +696,20 @@ class HabitApp {
     }
   }
   async handleLogin () {
-    const email = document.getElementById('loginEmail').value
+    const email = document.getElementById('loginEmail').value.trim()
     const password = document.getElementById('loginPassword').value
+    
+    if (!email.endsWith('@gmail.com')) {
+      this.showToast('Email must end with @gmail.com', 'error');
+      return;
+    }
+    
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      this.showToast('Invalid password format', 'error');
+      return;
+    }
+
     try {
       const res = await api('/api/login', {
         method: 'POST',
@@ -442,6 +722,9 @@ class HabitApp {
         return
       }
       localStorage.setItem('currentUser', JSON.stringify(data.user))
+      this.isGuest = false
+      const banner = document.getElementById('guestBanner')
+      if (banner) banner.style.display = 'none'
       updateNavbarUser(data.user.name)
       await this.loadHabitsFromServer(data.user.id)
       this.showToast('Welcome back! 🎉')
@@ -452,9 +735,26 @@ class HabitApp {
     }
   }
   async handleSignup () {
-    const name = document.getElementById('signupName').value
-    const email = document.getElementById('signupEmail').value
+    const name = document.getElementById('signupName').value.trim()
+    const email = document.getElementById('signupEmail').value.trim()
     const password = document.getElementById('signupPassword').value
+
+    if (!/^[a-zA-Z\s]+$/.test(name)) {
+      this.showToast('Name can only contain letters and spaces', 'error');
+      return;
+    }
+    
+    if (!email.endsWith('@gmail.com')) {
+      this.showToast('Email must end with @gmail.com', 'error');
+      return;
+    }
+    
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      this.showToast('Password needs 8+ chars, upper, lower, number, and special char', 'error');
+      return;
+    }
+
     try {
       const res = await api('/api/register', {
         method: 'POST',
@@ -477,13 +777,19 @@ class HabitApp {
   }
   handleLogout () {
     localStorage.removeItem('currentUser')
+    this.isGuest = true
     this.showToast('Logged out 👋', 'info')
     setTimeout(() => {
       this.clearAuthForms()
+      this.loadDemoData()
       this.showAuth()
     }, 400)
   }
   showAuth () {
+    // Force light mode on auth screens
+    document.body.classList.remove('dark-mode')
+    const dmBtn = document.getElementById('darkModeToggle')
+    if (dmBtn) dmBtn.innerHTML = '<i class="fas fa-moon"></i>'
     document.getElementById('authScreen').classList.add('active')
     document.getElementById('dashboardScreen').classList.remove('active')
   }
@@ -495,24 +801,38 @@ class HabitApp {
   }
   showDashboard () {
     const user = JSON.parse(localStorage.getItem('currentUser'))
-    if (!user) {
+    if (!user && !this.isGuest) {
       this.showAuth()
       return
     }
-    updateNavbarUser(user.name)
+    // Restore dark mode preference on dashboard
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode')
+      const btn = document.getElementById('darkModeToggle')
+      if (btn) btn.innerHTML = '<i class="fas fa-sun"></i>'
+    }
+    updateNavbarUser(user ? user.name : 'Guest')
     document.getElementById('authScreen').classList.remove('active')
     document.getElementById('dashboardScreen').classList.add('active')
     this.loadDashboard()
   }
   async loadDashboard () {
     await this.loadTemplates()
-    await this.loadHabitsFromServer()
+    if (!this.isGuest) await this.loadHabitsFromServer()
     await this.renderWeeklyChart()
     await this.renderStreakCalendar()
     await this.renderAchievements()
-    await this.loadDailyNote()
-    await this.loadDashboardSummary()
-    await this.loadDetailedStats()
+    if (!this.isGuest) {
+      await this.loadDailyNote()
+      await this.loadDashboardSummary()
+      await this.loadDetailedStats()
+    } else {
+      // Mock stats for demo
+      document.getElementById('currentStreak').textContent = '5'
+      document.getElementById('bestStreak').textContent = '15'
+      document.getElementById('completionRate').textContent = '66%'
+      document.getElementById('totalHabits').textContent = '3'
+    }
     this.showMotivation()
     this.updateProgressCircle()
     this.renderHabits()
@@ -555,6 +875,10 @@ class HabitApp {
     document.getElementById('progressPercent').textContent = percentage + '%'
   }
   async markHabit (habitId, status) {
+    if (this.isGuest) {
+      await this.showGuestPopup()
+      return
+    }
     if (this.loading) return
     this.loading = true
     try {
@@ -603,6 +927,10 @@ class HabitApp {
     }
   }
   async deleteHabit (habitId) {
+    if (this.isGuest) {
+      await this.showGuestPopup()
+      return
+    }
     const ok = await this.showConfirm('Delete this habit?')
     if (!ok) return
     try {
@@ -623,7 +951,11 @@ class HabitApp {
   showAddHabitModal () {
     document.getElementById('addHabitModal').classList.add('active')
   }
-  openEditHabit (habitId) {
+  async openEditHabit (habitId) {
+    if (this.isGuest) {
+      await this.showGuestPopup()
+      return
+    }
     const habit = this.habits.find(h => h.id === habitId)
     if (!habit) return
     this.editingHabitId = habitId
@@ -647,6 +979,11 @@ class HabitApp {
       'Save Habit'
   }
   async handleAddHabit () {
+    if (this.isGuest) {
+      this.hideAddHabitModal()
+      await this.showGuestPopup()
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) {
       this.showToast('Login expired. Please login again.', 'error')
@@ -725,8 +1062,13 @@ class HabitApp {
     canvas.width = canvas.offsetWidth
     canvas.height = 300
     const user = JSON.parse(localStorage.getItem('currentUser'))
-    const res = await api(`/api/user/${user.id}/weekly`)
-    const weekly = await res.json()
+    let weekly = {}
+    if (this.isGuest) {
+      weekly = { Sun: 40, Mon: 85, Tue: 70, Wed: 90, Thu: 60, Fri: 80, Sat: 50 }
+    } else {
+      const res = await api(`/api/user/${user.id}/weekly`)
+      weekly = await res.json()
+    }
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     const data = days.map(d => weekly[d] ?? 0)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -763,15 +1105,28 @@ class HabitApp {
     const daysInMonth = lastDay.getDate()
     const startingDayOfWeek = firstDay.getDay()
     const historyCache = {}
-    const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`
-    const lastDayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(
-      daysInMonth
-    ).padStart(2, '0')}`
-    for (const habit of this.habits || []) {
-      const res = await api(
-        `/api/habit/${habit.id}/history?from=${firstDayStr}&to=${lastDayStr}`
-      )
-      historyCache[habit.id] = await res.json()
+    if (this.isGuest) {
+      // Mock some history for demo
+      const todayNum = today.getDate()
+      for (const habit of this.habits || []) {
+        historyCache[habit.id] = {}
+        for (let d = 1; d <= todayNum; d++) {
+          const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+          if (Math.random() > 0.3) historyCache[habit.id][dStr] = 'done'
+          else if (Math.random() > 0.5) historyCache[habit.id][dStr] = 'missed'
+        }
+      }
+    } else {
+      const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`
+      const lastDayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(
+        daysInMonth
+      ).padStart(2, '0')}`
+      for (const habit of this.habits || []) {
+        const res = await api(
+          `/api/habit/${habit.id}/history?from=${firstDayStr}&to=${lastDayStr}`
+        )
+        historyCache[habit.id] = await res.json()
+      }
     }
     const todayStr =
       today.getFullYear() +
@@ -859,6 +1214,11 @@ class HabitApp {
     const panel = document.getElementById('notificationsPanel')
     panel.classList.toggle('active')
     if (!panel.classList.contains('active')) return
+    if (this.isGuest) {
+      const list = document.getElementById('notificationsList')
+      list.innerHTML = '<p>Login to see activity</p>'
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
     const res = await api(`/api/activity/${user.id}`)
@@ -1056,6 +1416,10 @@ ${
       .join('')
   }
   async saveDailyNote () {
+    if (this.isGuest) {
+      await this.showGuestPopup()
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
@@ -1073,6 +1437,11 @@ ${
     }
   }
   async loadDailyNote () {
+    if (this.isGuest) {
+      const textarea = document.getElementById('dailyNote')
+      if (textarea) textarea.value = "Great start to the day! Meditated for 10 minutes and finished my reading goal. Feeling productive! 🚀"
+      return
+    }
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
@@ -1119,7 +1488,11 @@ ${
       body: `Time for: ${habit.habit_name}`
     })
   }
-  applyTemplate (group) {
+  async applyTemplate (group) {
+    if (this.isGuest) {
+      await this.showGuestPopup()
+      return
+    }
     if (!this.templates || !this.templates[group]) return
     const items = this.templates[group]
     const random = items[Math.floor(Math.random() * items.length)]

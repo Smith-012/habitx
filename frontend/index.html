@@ -4,14 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HabitX - Build Better Habits</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>"
-    />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
   </head>
   <body>
@@ -90,17 +87,26 @@
                 type="email"
                 id="loginEmail"
                 placeholder="Email"
+                maxlength="25"
                 required
+                autocomplete="email"
               />
+              <span class="validation-error" id="loginEmailError"></span>
             </div>
-            <div class="input-group">
+            <div class="input-group password-group">
               <i class="fas fa-lock"></i>
               <input
                 type="password"
                 id="loginPassword"
                 placeholder="Password"
+                maxlength="20"
                 required
+                autocomplete="current-password"
               />
+              <button type="button" class="toggle-password" data-target="loginPassword">
+                <i class="fas fa-eye"></i>
+              </button>
+              <span class="validation-error" id="loginPasswordError"></span>
             </div>
             <button type="submit" class="btn-primary">
               <span>Login</span>
@@ -119,8 +125,12 @@
                 type="text"
                 id="signupName"
                 placeholder="Full Name"
+                pattern="[a-zA-Z\s]+"
+                maxlength="20"
                 required
+                autocomplete="name"
               />
+              <span class="validation-error" id="signupNameError"></span>
             </div>
             <div class="input-group">
               <i class="fas fa-envelope"></i>
@@ -128,17 +138,42 @@
                 type="email"
                 id="signupEmail"
                 placeholder="Email"
+                maxlength="25"
                 required
+                autocomplete="email"
               />
+              <span class="validation-error" id="signupEmailError"></span>
             </div>
-            <div class="input-group">
+            <div class="input-group password-group">
               <i class="fas fa-lock"></i>
               <input
                 type="password"
                 id="signupPassword"
-                placeholder="Password"
+                placeholder="Min 8 chars: Aa1@..."
+                minlength="8"
+                maxlength="20"
                 required
+                autocomplete="new-password"
               />
+              <button type="button" class="toggle-password" data-target="signupPassword">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <div class="password-strength-panel" id="passwordStrengthPanel">
+              <div class="strength-header">
+                <span>Strength:</span>
+                <strong id="strengthLabel">—</strong>
+              </div>
+              <div class="strength-bar-bg">
+                <div class="strength-bar-fill" id="strengthBarFill"></div>
+              </div>
+              <div class="strength-checklist">
+                <div class="check-item" id="chk-length"><i class="far fa-square"></i> 8‑20 chars</div>
+                <div class="check-item" id="chk-upper"><i class="far fa-square"></i> Uppercase</div>
+                <div class="check-item" id="chk-lower"><i class="far fa-square"></i> Lowercase</div>
+                <div class="check-item" id="chk-number"><i class="far fa-square"></i> Number</div>
+                <div class="check-item" id="chk-special"><i class="far fa-square"></i> Special Symbol</div>
+              </div>
             </div>
             <button type="submit" class="btn-primary">
               <span>Sign Up</span>
@@ -220,6 +255,12 @@
         </div>
       </nav>
       <div class="dashboard-container">
+        <div id="guestBanner" class="guest-banner" style="display: none;">
+          <div class="guest-banner-content">
+            <i class="fas fa-eye"></i>
+            <span>You are viewing a <strong>Demo Dashboard</strong>. <a href="#" onclick="app.showAuth(); return false;">Login or Sign Up</a> to start tracking your own habits!</span>
+          </div>
+        </div>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon fire">
