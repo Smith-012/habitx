@@ -76,7 +76,7 @@
             </div>
             <h1 class="brand-title">HabitX</h1>
             <p class="brand-tagline">
-              Build Better Habits. Track Your Progress.
+              - Build Better Habits -
             </p>
           </div>
           <form id="loginForm" class="auth-form active">
@@ -89,7 +89,7 @@
                 placeholder="Email"
                 maxlength="25"
                 required
-                autocomplete="email"
+                autocomplete=off
               />
               <span class="validation-error" id="loginEmailError"></span>
             </div>
@@ -101,17 +101,23 @@
                 placeholder="Password"
                 maxlength="20"
                 required
-                autocomplete="current-password"
+                autocomplete=off
               />
               <button type="button" class="toggle-password" data-target="loginPassword">
                 <i class="fas fa-eye"></i>
               </button>
               <span class="validation-error" id="loginPasswordError"></span>
             </div>
+            <div class="forgot-password-link">
+              <a href="#" id="showForgotModal">Forgot Password?</a>
+            </div>
             <button type="submit" class="btn-primary">
               <span>Login</span>
               <i class="fas fa-arrow-right"></i>
             </button>
+            <div style="text-align: center; margin-top: 15px;">
+              <a href="#" id="loginGuestBtn" style="color: var(--gray); text-decoration: none; font-size: 14px; font-weight: 500;">Continue as Guest</a>
+            </div>
             <p class="switch-auth">
               Don't have an account?
               <a href="#" id="showSignup">Sign Up</a>
@@ -128,7 +134,7 @@
                 pattern="[a-zA-Z\s]+"
                 maxlength="20"
                 required
-                autocomplete="name"
+                autocomplete=off
               />
               <span class="validation-error" id="signupNameError"></span>
             </div>
@@ -140,7 +146,7 @@
                 placeholder="Email"
                 maxlength="25"
                 required
-                autocomplete="email"
+                autocomplete=off
               />
               <span class="validation-error" id="signupEmailError"></span>
             </div>
@@ -149,11 +155,11 @@
               <input
                 type="password"
                 id="signupPassword"
-                placeholder="Min 8 chars: Aa1@..."
+                placeholder="Password"
                 minlength="8"
                 maxlength="20"
                 required
-                autocomplete="new-password"
+                autocomplete=off
               />
               <button type="button" class="toggle-password" data-target="signupPassword">
                 <i class="fas fa-eye"></i>
@@ -560,6 +566,87 @@
         }
       });
     </script>
+    <!-- Reset Password Modal -->
+    <div id="resetModal" class="modal">
+      <div class="modal-content reset-modal">
+        <button class="close-modal-btn" id="closeResetModal">&times;</button>
+        
+        <!-- Step 1: Enter Email -->
+        <div id="resetStep1" class="reset-step active">
+          <h2>Reset Password</h2>
+          <p class="reset-subtitle">Enter your email to receive an OTP.</p>
+          
+          <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="resetEmail" placeholder="Enter your email" required autocomplete=off style="padding-left: 45px;" />
+            <span class="validation-error" id="resetEmailError"></span>
+          </div>
+
+          <button id="btnSendOTP" class="btn-yellow">Send OTP</button>
+        </div>
+
+        <!-- Step 2: Verify & Reset -->
+        <div id="resetStep2" class="reset-step">
+          <h2>Reset Password</h2>
+          <p class="reset-subtitle">We sent a 6-digit code. Please enter it below.</p>
+          
+          <div class="input-group">
+            <input type="text" id="resetOTP" placeholder="Enter 6-digit OTP" maxlength="6" />
+          </div>
+
+          <div class="input-group password-group">
+            <input type="password" id="resetNewPassword" placeholder="New Password" maxlength="20" />
+            <button type="button" class="toggle-password" data-target="resetNewPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+
+          <!-- Strength Meter -->
+          <div class="password-strength-panel" id="resetStrengthPanel">
+            <div class="strength-header">
+              <span>Strength:</span>
+              <strong id="resetStrengthLabel">—</strong>
+            </div>
+            <div class="strength-bar-bg"><div class="strength-bar-fill" id="resetStrengthBar"></div></div>
+            <div class="strength-checklist">
+              <div class="check-item" id="r-chk-length"><i class="far fa-square"></i> 8‑20 chars</div>
+              <div class="check-item" id="r-chk-upper"><i class="far fa-square"></i> Uppercase</div>
+              <div class="check-item" id="r-chk-lower"><i class="far fa-square"></i> Lowercase</div>
+              <div class="check-item" id="r-chk-number"><i class="far fa-square"></i> Number</div>
+              <div class="check-item" id="r-chk-special"><i class="far fa-square"></i> Special Symbol</div>
+            </div>
+          </div>
+
+          <div class="input-group password-group">
+            <input type="password" id="resetConfirmPassword" placeholder="Confirm New Password" maxlength="20" />
+            <button type="button" class="toggle-password" data-target="resetConfirmPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+            <span class="validation-error" id="resetConfirmError"></span>
+          </div>
+
+          <button id="btnVerifyReset" class="btn-green">Verify & Reset Password</button>
+          
+          <div class="reset-footer">
+            <a href="#" id="backToStep1">Go Back</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Selection Modal -->
+    <div id="templateModal" class="modal">
+      <div class="modal-content" style="max-width: 450px;">
+        <button class="close-modal" onclick="document.getElementById('templateModal').classList.remove('active')">&times;</button>
+        <div class="modal-header">
+          <h2 id="templateModalTitle">Choose a Habit</h2>
+        </div>
+        <div id="templateHabitsList" class="template-habits-list">
+          <!-- Template items will be injected here -->
+        </div>
+      </div>
+    </div>
+
     <script src="app.js"></script>
   </body>
 </html>

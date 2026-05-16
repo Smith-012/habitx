@@ -655,6 +655,7 @@ body.dark-mode #dashboardScreen {
   margin: 15px 0;
   position: relative;
   z-index: 1;
+  transition: opacity 0.3s ease;
 }
 .progress-section {
   background: var(--card-bg);
@@ -1900,4 +1901,174 @@ body.dark-mode .guest-banner-content {
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Forgot Password Link */
+.forgot-password-link {
+  text-align: center;
+  margin: -10px 0 20px;
+}
+.forgot-password-link a {
+  color: var(--primary);
+  font-size: 14px;
+  text-decoration: none;
+  font-weight: 500;
+}
+.forgot-password-link a:hover {
+  text-decoration: underline;
+}
+
+/* Reset Modal Styles */
+.reset-modal {
+  max-width: 400px;
+  padding: 30px;
+  text-align: center;
+  border-radius: 24px;
+  position: relative;
+}
+.reset-step {
+  display: none;
+}
+.reset-step.active {
+  display: block;
+}
+.reset-subtitle {
+  color: var(--gray);
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+/* Segment Control */
+.segment-control {
+  display: flex;
+  background: #f1f5f9;
+  padding: 5px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+body.dark-mode .segment-control {
+  background: #0f172a;
+}
+.segment-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--gray);
+  transition: all 0.3s;
+}
+.segment-btn.active {
+  background: #ffcc00;
+  color: #000;
+  box-shadow: 0 4px 12px rgba(255, 204, 0, 0.2);
+}
+
+/* Buttons */
+.btn-yellow {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #ffcc00;
+  color: #000;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: transform 0.2s;
+}
+.btn-green {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #00c9a7;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+.btn-yellow:hover, .btn-green:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.reset-footer {
+  margin-top: 20px;
+}
+.reset-footer a {
+  color: var(--gray);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.close-modal-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.template-habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+.template-habit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.template-habit-item:hover {
+  background: #f1f5f9;
+  border-color: var(--primary);
+  transform: translateX(5px);
+}
+.template-habit-item .info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.template-habit-item .info strong {
+  color: var(--dark);
+  font-size: 15px;
+}
+.template-habit-item .info span {
+  color: var(--gray);
+  font-size: 12px;
+}
+.template-habit-item i {
+  color: var(--primary);
+  font-size: 14px;
+}
+body.dark-mode .template-habit-item {
+  background: #1e293b;
+}
+body.dark-mode .template-habit-item:hover {
+  background: #334155;
+}
+body.dark-mode .template-habit-item .info strong {
+  color: #f1f5f9;
 }

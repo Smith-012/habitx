@@ -1,5 +1,10 @@
 const API_BASE = 'http://127.0.0.1:5000'
 function api (url, options = {}) {
+  options.credentials = 'include'
+  if (options.body && (!options.headers || !options.headers['Content-Type'])) {
+    options.headers = options.headers || {}
+    options.headers['Content-Type'] = 'application/json'
+  }
   return fetch(API_BASE + url, options)
 }
 function updateNavbarUser (name) {
@@ -203,6 +208,12 @@ class HabitApp {
     if (!user) return
     try {
       const res = await api(`/api/habits/${user.id}`)
+      if (res.status === 401 || res.status === 403) {
+        console.warn('Session expired or unauthorized. Switching to Guest Mode.')
+        localStorage.removeItem('currentUser')
+        this.loadDemoData()
+        return
+      }
       const data = await res.json()
       if (!data.success) return
       this.habits = data.habits
@@ -364,6 +375,11 @@ class HabitApp {
     if (!user) return
     try {
       const res = await api(`/api/user/${user.id}/summary`)
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('currentUser')
+        this.loadDemoData()
+        return
+      }
       const data = await res.json()
       if (!data.success) return
       const s = data.summary
@@ -384,6 +400,11 @@ class HabitApp {
     if (!user) return
     try {
       const res = await api(`/api/user/${user.id}/detailed-stats`)
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('currentUser')
+        this.loadDemoData()
+        return
+      }
       const data = await res.json()
       if (!data.success) return
       document.getElementById('daysActive').textContent = data.days_active
@@ -412,9 +433,33 @@ class HabitApp {
       e.preventDefault()
       this.toggleAuthForm('login')
     })
+    document.getElementById('showForgotModal')?.addEventListener('click', e => {
+      e.preventDefault()
+      this.showResetModal()
+    })
+    document.getElementById('closeResetModal')?.addEventListener('click', () => {
+      this.hideResetModal()
+    })
+    document.getElementById('btnSendOTP')?.addEventListener('click', () => {
+      this.handleSendOTP()
+    })
+    document.getElementById('btnVerifyReset')?.addEventListener('click', () => {
+      this.handleVerifyReset()
+    })
+    document.getElementById('backToStep1')?.addEventListener('click', e => {
+      e.preventDefault()
+      document.getElementById('resetStep2').classList.remove('active')
+      document.getElementById('resetStep1').classList.add('active')
+    })
     document.getElementById('loginForm')?.addEventListener('submit', e => {
       e.preventDefault()
       this.handleLogin()
+    })
+    document.getElementById('loginGuestBtn')?.addEventListener('click', e => {
+      e.preventDefault()
+      localStorage.removeItem('currentUser')
+      this.loadDemoData()
+      this.showDashboard()
     })
     document.getElementById('signupForm')?.addEventListener('submit', e => {
       e.preventDefault()
@@ -438,7 +483,17 @@ class HabitApp {
       this.handleAddHabit()
     })
     const dateInput = document.getElementById('habitStartDate')
-    if (dateInput) dateInput.valueAsDate = new Date()
+    if (dateInput) {
+      const today = new Date()
+      const nextYear = new Date()
+      nextYear.setFullYear(today.getFullYear() + 1)
+      
+      const formatDate = (d) => d.toISOString().split('T')[0]
+      
+      dateInput.min = formatDate(today)
+      dateInput.max = formatDate(nextYear)
+      dateInput.value = formatDate(today)
+    }
     document.getElementById('darkModeToggle')?.addEventListener('click', () => {
       this.toggleDarkMode()
     })
@@ -467,8 +522,9 @@ class HabitApp {
         const user = JSON.parse(localStorage.getItem('currentUser'))
         if (!user) return
         try {
-          await api(`/api/activity/${user.id}/read`, { method: 'POST' })
-          await this.loadDashboardSummary()
+          await api(`/api/activity/${user.id}/clear`, { method: 'DELETE' })
+          document.getElementById('notificationsList').innerHTML = '<p>No activity yet</p>'
+          document.getElementById('notificationBadge').style.display = 'none'
           document
             .getElementById('notificationsPanel')
             .classList.remove('active')
@@ -541,7 +597,7 @@ class HabitApp {
 
     const signupEmail = document.getElementById('signupEmail')
     if (signupEmail) {
-      signupEmail.addEventListener('input', () => {
+      signupEmail.addEventListener('input', async () => {
         const val = signupEmail.value.trim()
         const err = document.getElementById('signupEmailError')
         if (!val) {
@@ -552,9 +608,25 @@ class HabitApp {
           signupEmail.classList.add('input-invalid')
           signupEmail.classList.remove('input-valid')
         } else {
-          err.textContent = ''
-          signupEmail.classList.remove('input-invalid')
-          signupEmail.classList.add('input-valid')
+          // Check if exists in DB
+          try {
+            const res = await api('/api/check-email-exists', {
+              method: 'POST',
+              body: JSON.stringify({ email: val })
+            })
+            const data = await res.json()
+            if (data.exists) {
+              err.textContent = 'Email id already registered ❌'
+              signupEmail.classList.add('input-invalid')
+              signupEmail.classList.remove('input-valid')
+            } else {
+              err.textContent = ''
+              signupEmail.classList.remove('input-invalid')
+              signupEmail.classList.add('input-valid')
+            }
+          } catch {
+            err.textContent = ''
+          }
         }
       })
     }
@@ -577,7 +649,7 @@ class HabitApp {
           'chk-upper': /[A-Z]/.test(val),
           'chk-lower': /[a-z]/.test(val),
           'chk-number': /\d/.test(val),
-          'chk-special': /[@$!%*?&]/.test(val)
+          'chk-special': /[@$!%*?&#^()_+\-=[\]{};':"\\|,.<>/?~]/.test(val)
         }
 
         let passed = 0
@@ -598,30 +670,85 @@ class HabitApp {
         const label = document.getElementById('strengthLabel')
         const bar = document.getElementById('strengthBarFill')
         bar.classList.remove('weak', 'medium', 'strong')
-        label.classList.remove('weak', 'medium', 'strong')
+        if (passed <= 2) { label.textContent = 'Weak'; bar.classList.add('weak'); bar.style.width = '33%'; }
+        else if (passed <= 4) { label.textContent = 'Medium'; bar.classList.add('medium'); bar.style.width = '66%'; }
+        else { label.textContent = 'Strong'; bar.classList.add('strong'); bar.style.width = '100%'; }
+      })
+    }
 
+    const resetEmailInput = document.getElementById('resetEmail')
+    if (resetEmailInput) {
+      resetEmailInput.addEventListener('input', () => {
+        const val = resetEmailInput.value.trim()
+        const err = document.getElementById('resetEmailError')
         if (!val) {
-          label.textContent = '\u2014'
-          bar.className = 'strength-bar-fill'
-          signupPass.classList.remove('input-valid', 'input-invalid')
-        } else if (passed <= 2) {
-          label.textContent = 'Weak'
-          label.classList.add('weak')
-          bar.classList.add('weak')
-          signupPass.classList.add('input-invalid')
-          signupPass.classList.remove('input-valid')
-        } else if (passed <= 4) {
-          label.textContent = 'Medium'
-          label.classList.add('medium')
-          bar.classList.add('medium')
-          signupPass.classList.add('input-invalid')
-          signupPass.classList.remove('input-valid')
+          err.textContent = ''
+          resetEmailInput.classList.remove('input-valid', 'input-invalid')
+        } else if (!val.endsWith('@gmail.com')) {
+          err.textContent = 'Must end with @gmail.com'
+          resetEmailInput.classList.add('input-invalid')
+          resetEmailInput.classList.remove('input-valid')
         } else {
-          label.textContent = 'Strong'
-          label.classList.add('strong')
-          bar.classList.add('strong')
-          signupPass.classList.remove('input-invalid')
-          signupPass.classList.add('input-valid')
+          err.textContent = ''
+          resetEmailInput.classList.remove('input-invalid')
+          resetEmailInput.classList.add('input-valid')
+        }
+      })
+    }
+
+    const resetPass = document.getElementById('resetNewPassword')
+    const resetPanel = document.getElementById('resetStrengthPanel')
+    if (resetPass && resetPanel) {
+      resetPass.addEventListener('focus', () => resetPanel.classList.add('visible'))
+      resetPass.addEventListener('blur', () => {
+        if (!resetPass.value) resetPanel.classList.remove('visible')
+      })
+      resetPass.addEventListener('input', () => {
+        const val = resetPass.value
+        resetPanel.classList.add('visible')
+        const rules = {
+          'r-chk-length': val.length >= 8 && val.length <= 20,
+          'r-chk-upper': /[A-Z]/.test(val),
+          'r-chk-lower': /[a-z]/.test(val),
+          'r-chk-number': /\d/.test(val),
+          'r-chk-special': /[@$!%*?&#^()_+\-=[\]{};':"\\|,.<>/?~]/.test(val)
+        }
+        let passed = 0
+        for (const [id, ok] of Object.entries(rules)) {
+          const el = document.getElementById(id)
+          if (!el) continue
+          const icon = el.querySelector('i')
+          if (ok) {
+            el.classList.add('passed')
+            icon.className = 'fas fa-check-square'
+            passed++
+          } else {
+            el.classList.remove('passed')
+            icon.className = 'far fa-square'
+          }
+        }
+        const label = document.getElementById('resetStrengthLabel')
+        const bar = document.getElementById('resetStrengthBar')
+        bar.classList.remove('weak', 'medium', 'strong')
+        if (passed <= 2) { label.textContent = 'Weak'; bar.classList.add('weak'); bar.style.width = '33%'; }
+        else if (passed <= 4) { label.textContent = 'Medium'; bar.classList.add('medium'); bar.style.width = '66%'; }
+        else { label.textContent = 'Strong'; bar.classList.add('strong'); bar.style.width = '100%'; }
+      })
+    }
+
+    const resetConfirm = document.getElementById('resetConfirmPassword')
+    if (resetConfirm) {
+      resetConfirm.addEventListener('input', () => {
+        const pass = document.getElementById('resetNewPassword').value
+        const conf = resetConfirm.value
+        const err = document.getElementById('resetConfirmError')
+        if (conf && pass !== conf) {
+          err.textContent = 'Passwords do not match ❌'
+          resetConfirm.classList.add('input-invalid')
+        } else {
+          err.textContent = ''
+          resetConfirm.classList.remove('input-invalid')
+          if (conf) resetConfirm.classList.add('input-valid')
         }
       })
     }
@@ -634,14 +761,10 @@ class HabitApp {
         if (!val) {
           err.textContent = ''
           loginEmail.classList.remove('input-valid', 'input-invalid')
-        } else if (!val.endsWith('@gmail.com')) {
-          err.textContent = 'Must end with @gmail.com'
-          loginEmail.classList.add('input-invalid')
-          loginEmail.classList.remove('input-valid')
         } else {
+          // Only show validation on submit, but clear errors if user clears input
           err.textContent = ''
           loginEmail.classList.remove('input-invalid')
-          loginEmail.classList.add('input-valid')
         }
       })
     }
@@ -651,18 +774,13 @@ class HabitApp {
       loginPass.addEventListener('input', () => {
         const val = loginPass.value
         const err = document.getElementById('loginPasswordError')
-        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/
         if (!val) {
           err.textContent = ''
           loginPass.classList.remove('input-valid', 'input-invalid')
-        } else if (!regex.test(val)) {
-          err.textContent = 'Invalid password format'
-          loginPass.classList.add('input-invalid')
-          loginPass.classList.remove('input-valid')
         } else {
+          // Silent validation while typing to avoid annoyance
           err.textContent = ''
           loginPass.classList.remove('input-invalid')
-          loginPass.classList.add('input-valid')
         }
       })
     }
@@ -704,7 +822,7 @@ class HabitApp {
       return;
     }
     
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{8,20}$/;
     if (!passwordRegex.test(password)) {
       this.showToast('Invalid password format', 'error');
       return;
@@ -718,7 +836,7 @@ class HabitApp {
       })
       const data = await res.json()
       if (!data.success) {
-        this.showToast(data.message || 'Login failed ❌')
+        this.showToast(data.message || 'Login failed ❌', 'error')
         return
       }
       localStorage.setItem('currentUser', JSON.stringify(data.user))
@@ -731,7 +849,7 @@ class HabitApp {
       this.showDashboard()
     } catch (err) {
       console.error(err)
-      this.showToast('Server not reachable ❌')
+      this.showToast('Server not reachable ❌', 'error')
     }
   }
   async handleSignup () {
@@ -749,9 +867,16 @@ class HabitApp {
       return;
     }
     
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    // Block if email is already registered (from live check)
+    const emailErr = document.getElementById('signupEmailError')
+    if (emailErr && emailErr.textContent.includes('already registered')) {
+      this.showToast('Please use a different email', 'error')
+      return
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{8,20}$/;
     if (!passwordRegex.test(password)) {
-      this.showToast('Password needs 8+ chars, upper, lower, number, and special char', 'error');
+      this.showToast('Password is too weak', 'error');
       return;
     }
 
@@ -775,7 +900,12 @@ class HabitApp {
       this.showToast('Server not reachable', 'error')
     }
   }
-  handleLogout () {
+  async handleLogout () {
+    try {
+      await api('/api/logout', { method: 'POST' })
+    } catch (err) {
+      console.error('Logout failed', err)
+    }
     localStorage.removeItem('currentUser')
     this.isGuest = true
     this.showToast('Logged out 👋', 'info')
@@ -798,6 +928,82 @@ class HabitApp {
     const signupForm = document.getElementById('signupForm')
     if (loginForm) loginForm.reset()
     if (signupForm) signupForm.reset()
+    document.getElementById('resetEmail').value = ''
+    document.getElementById('resetOTP').value = ''
+    document.getElementById('resetNewPassword').value = ''
+    document.getElementById('resetConfirmPassword').value = ''
+  }
+  showResetModal () {
+    document.getElementById('resetModal').classList.add('active')
+    document.getElementById('resetStep1').classList.add('active')
+    document.getElementById('resetStep2').classList.remove('active')
+  }
+  hideResetModal () {
+    document.getElementById('resetModal').classList.remove('active')
+    this.clearAuthForms()
+  }
+  async handleSendOTP () {
+    const email = document.getElementById('resetEmail').value.trim()
+    if (!email.endsWith('@gmail.com')) {
+      this.showToast('Please enter a valid @gmail.com email', 'error')
+      return
+    }
+    
+    try {
+      const res = await api('/api/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      })
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
+        this.showToast('Enter OTP 123456 for test 📧', 'success')
+        document.getElementById('resetStep1').classList.remove('active')
+        document.getElementById('resetStep2').classList.add('active')
+      } else {
+        this.showToast('Check email ID ❌', 'error')
+      }
+    } catch (err) {
+      this.showToast('Error verifying email', 'error')
+    }
+  }
+  async handleVerifyReset () {
+    const email = document.getElementById('resetEmail').value.trim()
+    const otp = document.getElementById('resetOTP').value
+    const pass = document.getElementById('resetNewPassword').value
+    const confirm = document.getElementById('resetConfirmPassword').value
+    
+    if (otp.length !== 6) {
+      this.showToast('Invalid OTP format (6 digits required)', 'error')
+      return
+    }
+    if (pass !== confirm) {
+      this.showToast('Passwords do not match ❌', 'error')
+      return
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{8,20}$/;
+    if (!passwordRegex.test(pass)) {
+      this.showToast('Password must meet all security requirements', 'error')
+      return
+    }
+
+    try {
+      const res = await api('/api/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, password: pass })
+      })
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
+        this.showToast('Password reset successful! 🎉', 'success')
+        this.hideResetModal()
+        this.toggleAuthForm('login')
+      } else {
+        this.showToast(data.message || 'Reset failed ❌', 'error')
+      }
+    } catch (err) {
+      this.showToast('Reset failed ❌', 'error')
+    }
   }
   showDashboard () {
     const user = JSON.parse(localStorage.getItem('currentUser'))
@@ -822,6 +1028,7 @@ class HabitApp {
     await this.renderWeeklyChart()
     await this.renderStreakCalendar()
     await this.renderAchievements()
+    this.prevAchievements = this.userAchievements?.map(a => a.id) || []
     if (!this.isGuest) {
       await this.loadDailyNote()
       await this.loadDashboardSummary()
@@ -833,7 +1040,7 @@ class HabitApp {
       document.getElementById('completionRate').textContent = '66%'
       document.getElementById('totalHabits').textContent = '3'
     }
-    this.showMotivation()
+    this.startMotivationCycling()
     this.updateProgressCircle()
     this.renderHabits()
     this.updateReminderIcon()
@@ -846,16 +1053,38 @@ class HabitApp {
     if (this.currentFilter === 'all') return this.habits
     return this.habits.filter(h => h.category === this.currentFilter)
   }
+  startMotivationCycling () {
+    if (this.motivationInterval) clearInterval(this.motivationInterval)
+    this.motivationIndex = 0
+    this.showMotivation()
+    this.motivationInterval = setInterval(() => {
+      this.motivationIndex++
+      this.showMotivation()
+    }, 3000)
+  }
   showMotivation () {
-    const habits = this.getVisibleHabits()
-    let message =
-      motivationMessages[Math.floor(Math.random() * motivationMessages.length)]
-    habits.forEach(habit => {
-      if (streakMessages[habit.current_streak]) {
-        message = streakMessages[habit.current_streak]
-      }
-    })
-    document.getElementById('motivationText').textContent = message
+    const habits = this.getVisibleHabits() || []
+    const streaks = habits
+      .map(h => streakMessages[h.current_streak])
+      .filter(Boolean)
+    
+    // Total messages = motivationMessages + current streaks
+    const allMessages = [...motivationMessages, ...streaks]
+    if (allMessages.length === 0) return
+
+    if (this.motivationIndex >= allMessages.length) {
+      this.motivationIndex = 0
+    }
+    
+    const message = allMessages[this.motivationIndex]
+    const el = document.getElementById('motivationText')
+    if (el) {
+      el.style.opacity = '0'
+      setTimeout(() => {
+        el.textContent = message
+        el.style.opacity = '1'
+      }, 300)
+    }
   }
   updateProgressCircle () {
     const habits = this.getVisibleHabits()
@@ -972,7 +1201,7 @@ class HabitApp {
   hideAddHabitModal () {
     document.getElementById('addHabitModal').classList.remove('active')
     document.getElementById('addHabitForm').reset()
-    document.getElementById('habitStartDate').valueAsDate = new Date()
+    document.getElementById('habitStartDate').value = new Date().toISOString().split('T')[0]
     this.editingHabitId = null
     document.querySelector('#addHabitModal h2').textContent = 'Add New Habit'
     document.querySelector('#addHabitForm button[type="submit"]').textContent =
@@ -990,7 +1219,6 @@ class HabitApp {
       return
     }
     const habitData = {
-      user_id: user.id,
       name: document.getElementById('habitName').value,
       category: document.getElementById('habitCategory').value,
       frequency: document.getElementById('habitFrequency').value,
@@ -1495,9 +1723,27 @@ ${
     }
     if (!this.templates || !this.templates[group]) return
     const items = this.templates[group]
-    const random = items[Math.floor(Math.random() * items.length)]
-    document.getElementById('habitName').value = random.name
-    document.getElementById('habitCategory').value = random.category
+    const list = document.getElementById('templateHabitsList')
+    const modal = document.getElementById('templateModal')
+    document.getElementById('templateModalTitle').textContent = 
+      group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' ')
+    
+    list.innerHTML = items.map(item => `
+      <div class="template-habit-item" onclick="app.selectTemplateHabit('${item.name.replace(/'/g, "\\'")}', '${item.category}')">
+        <div class="info">
+          <strong>${item.name}</strong>
+          <span>${item.category}</span>
+        </div>
+        <i class="fas fa-plus"></i>
+      </div>
+    `).join('')
+    
+    modal.classList.add('active')
+  }
+  selectTemplateHabit(name, category) {
+    document.getElementById('templateModal').classList.remove('active')
+    document.getElementById('habitName').value = name
+    document.getElementById('habitCategory').value = category
     this.showAddHabitModal()
   }
 }
