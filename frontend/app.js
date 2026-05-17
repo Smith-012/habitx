@@ -1834,5 +1834,6 @@ ${
 }
 let app
 document.addEventListener('DOMContentLoaded', () => {
-  app = new HabitApp()
+  window.app = new HabitApp()
+  app = window.app
 })
