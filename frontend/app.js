@@ -1,4 +1,8 @@
-const API_BASE = 'http://127.0.0.1:5000'
+// Dynamically determine the backend URL based on the environment
+const API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+  ? 'http://127.0.0.1:5000'
+  : 'https://habitx-backend.onrender.com'; // You can change this to your actual Render URL later
+
 function api (url, options = {}) {
   options.credentials = 'include'
   if (options.body && (!options.headers || !options.headers['Content-Type'])) {

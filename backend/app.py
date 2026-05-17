@@ -33,7 +33,13 @@ app = Flask(
     static_folder=FRONTEND_DIR,
     static_url_path="",
 )
-CORS(app, supports_credentials=True)
+
+# Dynamically set frontend URL (important for Vercel CORS)
+frontend_url = os.environ.get("FRONTEND_URL", "http://127.0.0.1:5500") # Replace with your Vercel URL later
+
+CORS(app, supports_credentials=True, origins=[frontend_url, "http://127.0.0.1:5000", "http://localhost:5000"])
+
+# Secure the secret key
 app.secret_key = os.environ.get("SECRET_KEY", "habitx-super-secret-key-999")
 init_db()
 
