@@ -832,13 +832,27 @@ class HabitApp {
     const email = document.getElementById('loginEmail').value.trim()
     const password = document.getElementById('loginPassword').value
     
+    const emailErr = document.getElementById('loginEmailError')
+    const passErr = document.getElementById('loginPasswordError')
+    const emailInput = document.getElementById('loginEmail')
+    const passInput = document.getElementById('loginPassword')
+    
+    if (emailErr) emailErr.textContent = ''
+    if (passErr) passErr.textContent = ''
+    if (emailInput) emailInput.classList.remove('input-invalid')
+    if (passInput) passInput.classList.remove('input-invalid')
+
     if (!email.endsWith('@gmail.com')) {
+      if (emailErr) emailErr.textContent = 'Email must end with @gmail.com'
+      if (emailInput) emailInput.classList.add('input-invalid')
       this.showToast('Email must end with @gmail.com', 'error');
       return;
     }
     
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#]).{8,20}$/;
     if (!passwordRegex.test(password)) {
+      if (passErr) passErr.textContent = 'Password must be 8-20 chars with uppercase, lowercase, number, and special character.'
+      if (passInput) passInput.classList.add('input-invalid')
       this.showToast('Invalid password format', 'error');
       return;
     }
@@ -850,10 +864,22 @@ class HabitApp {
         body: JSON.stringify({ email, password })
       })
       const data = await res.json()
-      if (!data.success) {
-        this.showToast(data.message || 'Login failed ❌', 'error')
+      
+      const isSuccess = data.success === true || data.success === 'true'
+      if (!isSuccess) {
+        const msg = data.message || 'Login failed ❌'
+        this.showToast(msg, 'error')
+        
+        if (msg.toLowerCase().includes('user') || msg.toLowerCase().includes('email') || msg.toLowerCase().includes('found')) {
+          if (emailErr) emailErr.textContent = msg
+          if (emailInput) emailInput.classList.add('input-invalid')
+        } else if (msg.toLowerCase().includes('password')) {
+          if (passErr) passErr.textContent = msg
+          if (passInput) passInput.classList.add('input-invalid')
+        }
         return
       }
+      
       localStorage.setItem('currentUser', JSON.stringify(data.user))
       localStorage.setItem('authToken', data.token)
       this.isGuest = false
