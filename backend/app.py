@@ -550,7 +550,7 @@ def get_activities(user_id):
         """
         SELECT * FROM activity_logs
         WHERE user_id=?
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         LIMIT 50
     """,
         (user_id,),
@@ -659,6 +659,29 @@ def detailed_stats(user_id):
             "achievements_count": len(achievements),
         }
     )
+@app.route("/api/user/<int:user_id>", methods=["DELETE"])
+def delete_account(user_id):
+    if get_auth_user_id() != user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        # Delete related tables first (foreign keys)
+        cur.execute("DELETE FROM habit_logs WHERE habit_id IN (SELECT id FROM habits WHERE user_id = ?)", (user_id,))
+        cur.execute("DELETE FROM habits WHERE user_id = ?", (user_id,))
+        cur.execute("DELETE FROM activity_logs WHERE user_id = ?", (user_id,))
+        cur.execute("DELETE FROM daily_notes WHERE user_id = ?", (user_id,))
+        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "Account deleted successfully"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print("DELETE ACCOUNT ERROR:", e)
+        return jsonify({"success": False, "message": "Database error during deletion"}), 500
+
 
 
 if __name__ == "__main__":

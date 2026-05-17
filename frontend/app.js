@@ -480,6 +480,9 @@ class HabitApp {
     document.getElementById('logoutBtn')?.addEventListener('click', () => {
       this.handleLogout()
     })
+    document.getElementById('deleteAccountBtn')?.addEventListener('click', () => {
+      this.handleDeleteAccount()
+    })
     document.getElementById('addHabitBtn')?.addEventListener('click', async () => {
       if (this.isGuest) {
         await this.showGuestPopup()
@@ -929,6 +932,41 @@ class HabitApp {
       this.showAuth()
     }, 400)
   }
+  async handleDeleteAccount () {
+    if (this.isGuest) {
+      this.showToast('Guests cannot delete account.', 'error')
+      return
+    }
+    const user = JSON.parse(localStorage.getItem('currentUser'))
+    if (!user) return
+
+    const confirm1 = await this.showConfirm('Are you sure you want to permanently delete your account? All habits, tracking records, and reflections will be deleted forever.')
+    if (!confirm1) return
+
+    const confirm2 = await this.showConfirm('This action is irreversible. You will need to re-register to use the system again. Proceed with deletion?')
+    if (!confirm2) return
+
+    try {
+      const res = await api(`/api/user/${user.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        this.showToast('Account permanently deleted 👋', 'success')
+        localStorage.removeItem('currentUser')
+        localStorage.removeItem('authToken')
+        this.isGuest = true
+        setTimeout(() => {
+          this.clearAuthForms()
+          this.loadDemoData()
+          this.showAuth()
+        }, 400)
+      } else {
+        this.showToast(data.message || 'Deletion failed', 'error')
+      }
+    } catch (err) {
+      console.error(err)
+      this.showToast('Server not reachable ❌', 'error')
+    }
+  }
   showAuth () {
     // Force light mode on auth screens
     document.body.classList.remove('dark-mode')
@@ -1031,6 +1069,13 @@ class HabitApp {
       const btn = document.getElementById('darkModeToggle')
       if (btn) btn.innerHTML = '<i class="fas fa-sun"></i>'
     }
+    
+    // Toggle Danger Zone block visibility based on guest status
+    const dz = document.querySelector('.danger-zone-section')
+    if (dz) {
+      dz.style.display = this.isGuest ? 'none' : 'block'
+    }
+    
     updateNavbarUser(user ? user.name : 'Guest')
     document.getElementById('authScreen').classList.remove('active')
     document.getElementById('dashboardScreen').classList.add('active')

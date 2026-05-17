@@ -26,6 +26,9 @@ if HAS_POSTGRES:
             elif "date('now', '-6 days')" in translated_query:
                 translated_query = translated_query.replace("date('now', '-6 days')", "to_char(CURRENT_DATE - INTERVAL '6 days', 'YYYY-MM-DD')")
             
+            if "strftime('%w', hl.date)" in translated_query:
+                translated_query = translated_query.replace("strftime('%w', hl.date)", "EXTRACT(DOW FROM hl.date::date)")
+            
             # Translate SQLite autoincrement to PostgreSQL
             if "INTEGER PRIMARY KEY AUTOINCREMENT" in translated_query:
                 translated_query = translated_query.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")

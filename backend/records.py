@@ -49,7 +49,7 @@ def get_personal_records(user_id):
         FROM habit_logs
         JOIN habits ON habits.id = habit_logs.habit_id
         WHERE habits.user_id=? AND status='done'
-        GROUP BY habit_id
+        GROUP BY habits.habit_name, habit_logs.habit_id
         ORDER BY total DESC
         LIMIT 1
     """,
