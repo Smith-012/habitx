@@ -41,6 +41,11 @@ CORS(app, supports_credentials=True, origins=[frontend_url, "http://127.0.0.1:50
 
 # Secure the secret key
 app.secret_key = os.environ.get("SECRET_KEY", "habitx-super-secret-key-999")
+
+# Cross-domain cookie settings (required when frontend and backend are on different domains)
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+
 init_db()
 
 
