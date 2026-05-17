@@ -5,6 +5,14 @@ const API_BASE = window.location.hostname === '127.0.0.1' || window.location.hos
 
 function api (url, options = {}) {
   options.credentials = 'include'
+  
+  // Attach token-based auth for cross-domain support
+  const token = localStorage.getItem('authToken')
+  if (token) {
+    options.headers = options.headers || {}
+    options.headers['Authorization'] = `Bearer ${token}`
+  }
+
   if (options.body && (!options.headers || !options.headers['Content-Type'])) {
     options.headers = options.headers || {}
     options.headers['Content-Type'] = 'application/json'
@@ -844,6 +852,7 @@ class HabitApp {
         return
       }
       localStorage.setItem('currentUser', JSON.stringify(data.user))
+      localStorage.setItem('authToken', data.token)
       this.isGuest = false
       const banner = document.getElementById('guestBanner')
       if (banner) banner.style.display = 'none'
@@ -911,6 +920,7 @@ class HabitApp {
       console.error('Logout failed', err)
     }
     localStorage.removeItem('currentUser')
+    localStorage.removeItem('authToken')
     this.isGuest = true
     this.showToast('Logged out 👋', 'info')
     setTimeout(() => {

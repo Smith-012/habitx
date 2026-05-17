@@ -23,6 +23,7 @@ from flask import Flask, jsonify, request, render_template, session
 from flask_cors import CORS
 from collections import defaultdict
 from datetime import date, timedelta
+from itsdangerous import URLSafeTimedSerializer
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,6 +48,27 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 
 init_db()
+
+# Token-based auth (works across different domains unlike cookies)
+token_serializer = URLSafeTimedSerializer(app.secret_key)
+
+def generate_token(user_id):
+    return token_serializer.dumps({'user_id': user_id})
+
+def verify_token(token):
+    try:
+        data = token_serializer.loads(token, max_age=86400 * 30)  # 30 days
+        return data.get('user_id')
+    except:
+        return None
+
+def get_auth_user_id():
+    """Get user_id from Authorization header (token) or session (local dev)"""
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+        return verify_token(token)
+    return session.get("user_id")
 
 
 @app.route("/")
@@ -109,9 +131,11 @@ def login():
         return jsonify({"error": True, "message": "Wrong password"})
     
     session["user_id"] = user["id"]
+    token = generate_token(user["id"])
     return jsonify(
         {
             "success": True,
+            "token": token,
             "user": {"id": user["id"], "name": user["name"], "email": user["email"]},
         }
     )
@@ -173,7 +197,7 @@ def reset_password_route():
 
 @app.route("/api/habits", methods=["POST"])
 def add_habit():
-    user_id = session.get("user_id")
+    user_id = get_auth_user_id()
     if not user_id:
         return jsonify({"success": False, "message": "Login required"}), 401
         
@@ -201,7 +225,7 @@ def add_habit():
 
 @app.route("/api/habits/<int:user_id>", methods=["GET"])
 def get_habits(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     cur = conn.cursor()
@@ -252,7 +276,7 @@ def habit_history(habit_id):
 
 @app.route("/api/user/<int:user_id>/weekly")
 def weekly_progress(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     cur = conn.cursor()
@@ -284,7 +308,7 @@ def weekly_progress(user_id):
 
 @app.route("/api/habits/today/<int:user_id>")
 def today_habits(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     habits = get_today_habits(user_id)
     return jsonify(habits)
@@ -292,7 +316,7 @@ def today_habits(user_id):
 
 @app.route("/api/habits/<int:habit_id>/check", methods=["POST"])
 def check_habit(habit_id):
-    user_id = session.get("user_id")
+    user_id = get_auth_user_id()
     if not user_id:
         return jsonify({"success": False, "message": "Login required"}), 401
 
@@ -339,7 +363,7 @@ def check_habit(habit_id):
 
 @app.route("/api/habits/<int:habit_id>", methods=["DELETE"])
 def delete_habit_route(habit_id):
-    user_id = session.get("user_id")
+    user_id = get_auth_user_id()
     if not user_id:
         return jsonify({"success": False, "message": "Login required"}), 401
 
@@ -403,7 +427,7 @@ def update_habit(habit_id):
 
 @app.route("/api/daily-note/<int:user_id>/<string:note_date>", methods=["GET"])
 def api_get_daily_note(user_id, note_date):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     try:
         content = get_daily_note(user_id, note_date)
@@ -414,7 +438,7 @@ def api_get_daily_note(user_id, note_date):
 
 @app.route("/api/daily-note/<int:user_id>/<string:note_date>", methods=["POST"])
 def api_save_daily_note(user_id, note_date):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     data = request.get_json()
     content = data.get("content", "")
@@ -428,7 +452,7 @@ def api_save_daily_note(user_id, note_date):
 
 @app.route("/api/analytics/weekly/<int:user_id>")
 def weekly_analytics(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     cur = conn.cursor()
@@ -458,7 +482,7 @@ def weekly_analytics(user_id):
 
 @app.route("/api/insights/<int:user_id>")
 def get_insights(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     cur = conn.cursor()
@@ -503,7 +527,7 @@ def get_insights(user_id):
 
 @app.route("/api/achievements/<int:user_id>")
 def achievements_api(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     data = get_user_achievements(user_id)
     return jsonify({"success": True, "achievements": data})
@@ -511,14 +535,14 @@ def achievements_api(user_id):
 
 @app.route("/api/records/<int:user_id>")
 def personal_records(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     return {"success": True, "records": get_personal_records(user_id)}
 
 
 @app.route("/api/activity/<int:user_id>")
 def get_activities(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     cur = conn.cursor()
@@ -537,7 +561,7 @@ def get_activities(user_id):
 
 @app.route("/api/activity/<int:user_id>/clear", methods=["DELETE"])
 def clear_activities(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     conn.execute("DELETE FROM activity_logs WHERE user_id=?", (user_id,))
@@ -548,7 +572,7 @@ def clear_activities(user_id):
 
 @app.route("/api/activity/<int:user_id>/read", methods=["POST"])
 def mark_activity_read(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     conn.execute("UPDATE activity_logs SET is_read=1 WHERE user_id=?", (user_id,))
@@ -559,7 +583,7 @@ def mark_activity_read(user_id):
 
 @app.route("/api/user/<int:user_id>/summary")
 def user_summary(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     try:
         summary = get_user_summary(user_id)
@@ -592,7 +616,7 @@ def get_templates():
 
 @app.route("/api/user/<int:user_id>/detailed-stats")
 def detailed_stats(user_id):
-    if session.get("user_id") != user_id:
+    if get_auth_user_id() != user_id:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     conn = get_connection()
     cur = conn.cursor()
