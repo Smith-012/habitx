@@ -3,14 +3,81 @@ from pathlib import Path
 import hashlib
 from datetime import datetime
 import time
+import os
+
+try:
+    import psycopg2
+    from psycopg2.extras import DictCursor
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
 
 DB_PATH = Path(__file__).parent / "habitx.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
+if HAS_POSTGRES:
+    class PostgresCompatCursor(DictCursor):
+        def execute(self, query, vars=None):
+            translated_query = query.replace('?', '%s')
+            
+            # Translate SQLite functions to PostgreSQL
+            if "date('now','-6 days')" in translated_query:
+                translated_query = translated_query.replace("date('now','-6 days')", "to_char(CURRENT_DATE - INTERVAL '6 days', 'YYYY-MM-DD')")
+            elif "date('now', '-6 days')" in translated_query:
+                translated_query = translated_query.replace("date('now', '-6 days')", "to_char(CURRENT_DATE - INTERVAL '6 days', 'YYYY-MM-DD')")
+            
+            # Translate SQLite autoincrement to PostgreSQL
+            if "INTEGER PRIMARY KEY AUTOINCREMENT" in translated_query:
+                translated_query = translated_query.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+                
+            super().execute(translated_query, vars)
+            return self
+
+        def executemany(self, query, vars_list):
+            translated_query = query.replace('?', '%s')
+            super().executemany(translated_query, vars_list)
+            return self
+
+    class PostgresConnWrapper:
+        def __init__(self, conn):
+            self._conn = conn
+            self.row_factory = None
+
+        def cursor(self):
+            return self._conn.cursor(cursor_factory=PostgresCompatCursor)
+
+        def execute(self, query, vars=None):
+            cur = self.cursor()
+            cur.execute(query, vars)
+            return cur
+
+        def commit(self):
+            self._conn.commit()
+
+        def close(self):
+            self._conn.close()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if exc_type is not None:
+                self._conn.rollback()
+            else:
+                self._conn.commit()
+            self._conn.close()
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DATABASE_URL and HAS_POSTGRES:
+        url = DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        raw_conn = psycopg2.connect(url)
+        return PostgresConnWrapper(raw_conn)
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 def init_db():
