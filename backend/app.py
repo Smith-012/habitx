@@ -76,6 +76,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/ping")
+def ping():
+    return jsonify({"success": True, "message": "pong"})
+
+
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
